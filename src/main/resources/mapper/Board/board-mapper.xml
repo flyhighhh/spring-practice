@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="board">
+
+	<!-- 다 써야됨 -->
+	<resultMap type="board" id="boardMap">
+		<id column="boardNo" property="boardNo" />
+		<result column="boardTitle" property="boardTitle" />
+		<result column="boardContent" property="boardContent" />
+		<result column="boardDate" property="boardDate" />
+		<result column="boardReadCount" property="boardReadCount" />
+		<association property="boardWriter" resultMap="memberMap" />
+		<collection property="files" ofType="attachment">
+			<id column="attachmentno" property="attachmentNo" />
+			<result column="originalfilename" property="originalFilename" />
+			<result column="renamedfilename" property="renamedFilename" />
+			<result column="uploaddate" property="uploadDate" />
+			<result column="downloadcount" property="downloadCount" />
+		</collection>
+	</resultMap>
+	
+	<resultMap type="member" id="memberMap">
+		<id column="userid" property="userId" />
+		<result column="username" property="userName" />
+		<result column="email" property="email" />
+		<result column="gender" property="gender" />
+		<result column="age" property="age" />
+		<result column="phone" property="phone" />
+		<result column="address" property="address" />
+		<result column="hobby" property="hobby" typeHandler="strArr" />
+	</resultMap>
+
+	<select id="selectBoardList" resultMap="boardMap">
+		SELECT * FROM BOARD B 
+		JOIN MEMBER M ON B.BOARDWRITER=M.USERID 
+		LEFT JOIN ATTACHMENT A ON B.BOARDNO=A.BOARDNO ORDER BY BOARDDATE DESC
+	</select>
+	
+	<select id="selectBoardCount" resultType="_int">
+		SELECT COUNT(*) FROM BOARD
+	</select>
+
+	<insert id="insertBoard" parameterType="board">
+		INSERT INTO BOARD
+		VALUES(SEQ_BOARDNO.NEXTVAL, #{boardTitle}, #{boardWriter.userId}, #{boardContent}, DEFAULT, DEFAULT)
+		<selectKey keyProperty="boardNo" resultType="_int" order="AFTER"> 
+			SELECT SEQ_BOARDNO.CURRVAL FROM DUAL
+		</selectKey>
+		<!-- order:befor/after 실행 전후에 가져올 값이 있으면 -->
+	</insert>
+	<insert id="insertAttachment" parameterType="attachment">
+		INSERT INTO ATTACHMENT 
+		VALUES(SEQ_ATTACHMENTNO.NEXTVAL,#{boardNo},
+				#{originalFilename},#{renamedFilename},
+				 DEFAULT, DEFAULT, DEFAULT)
+	</insert>
+								<!-- resultMap으로 하는 이유는 member, attach연결해서 가져와야하니까 -->
+	<select id="selectBoardOne" resultMap="boardMap" parameterType="_int">
+		SELECT *
+		FROM BOARD B JOIN MEMBER M ON B.BOARDWRITER=M.USERID
+		LEFT JOIN ATTACHMENT A ON B.BOARDNO=A.BOARDNO
+		WHERE B.BOARDNO=#{boardNo}
+	
+	</select>
+	
+
+</mapper>

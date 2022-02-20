@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:websocket="http://www.springframework.org/schema/websocket"
+	xsi:schemaLocation="http://www.springframework.org/schema/websocket http://www.springframework.org/schema/websocket/spring-websocket-4.3.xsd
+		http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.3.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.3.xsd">
+	
+	<!-- Root Context: defines shared resources visible to all other web components -->
+	
+	<bean id="realDataSource" class="org.apache.commons.dbcp.BasicDataSource" destroy-method="close">
+		<property name="driverClassName" value="oracle.jdbc.driver.OracleDriver"/>
+		<property name="url" value="jdbc:oracle:thin:@localhost:1521:xe"/>
+		<property name="username" value="spring"/>
+		<property name="password" value="spring"/>
+	</bean>
+	
+	<bean id="dataSource" class="net.sf.log4jdbc.Log4jdbcProxyDataSource">
+		<constructor-arg ref="realDataSource"/>
+		<property name="logFormatter">
+			<bean class="net.sf.log4jdbc.tools.Log4JdbcCustomFormatter">
+				<property name="loggingType" value="MULTI_LINE"/>
+				<property name="sqlPrefix" value="[SQL]"/>
+			</bean>
+		</property>
+	</bean>
+	
+	<bean id="sqlSessionFactoryBean" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="dataSource"/>
+		<property name="configLocation" value="classpath:mybatis-config.xml"/>
+		<property name="mapperLocations" value="classpath*:mapper/**/*.xml"/>
+	</bean>
+	<bean id="sqlSessionTemplate" class="org.mybatis.spring.SqlSessionTemplate">
+		<constructor-arg index="0" ref="sqlSessionFactoryBean"/>
+	</bean>
+	
+	<!-- 트렌젝션 매니저 등록하기 -->
+	<bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="dataSource"/>
+	</bean>
+	
+	<!-- 어노테이션을 읽을 수 있게 처리하기 / 트렌젝션하면 이것도 해줘야함-->
+	<!-- <tx:annotation-driven transaction-manager="transactionManager"/> -->
+	
+	<!-- xml방식으로 트렉젝션 처리하기 
+		트렌젝션이 사용하는 어드바이져 등-->
+	<tx:advice id="txAdvice" transaction-manager="transactionManager">
+		<tx:attributes>
+			<tx:method name="insert*"/>
+		</tx:attributes>
+	</tx:advice>
+	
+	<aop:config>
+		<aop:pointcut expression="execution(* com.hello.spring..*ServiceImpl.insert*(..))" id="txp"/>
+		<aop:advisor advice-ref="txAdvice" pointcut-ref="txp"/>
+			<!--serviceImpl에 있는 insert에 다 걸림  -->
+	</aop:config>
+	
+	<!-- 
+		websocket설정하기
+		1. websocket서버 springbean으로 등록하기
+		2. websocket핸들러 등록하기 -> 요청주소와 맵핑하기
+	 -->
+	 <bean id="chatting" class="com.hello.spring.common.websocket.ChattingServer"/>
+	 <websocket:handlers>
+	 	<websocket:mapping handler="chatting" path="/chatting"/>
+	 	<websocket:handshake-interceptors>
+	 		<bean class="org.springframework.web.socket.server.support.HttpSessionHandshakeInterceptor"/>
+	 	</websocket:handshake-interceptors>
+	 	<websocket:sockjs/>
+	 </websocket:handlers>
+
+
+	
+</beans>

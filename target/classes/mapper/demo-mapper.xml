@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="dev">
+	
+	<insert id="insertDemo" parameterType="demo">
+		INSERT INTO DEV VALUES(SEQ_DEV_NO.NEXTVAL,#{devName},#{devAge},
+					#{devEmail},#{devGender},
+					<foreach collection="devLang" item="l" open="'"
+					separator="," close="'">
+					${l}
+					</foreach>)
+	</insert>
+	
+	<resultMap type="demo" id="demoMap">
+		<result column="devLang" property="devLang" typeHandler="strArr"/>
+	</resultMap>
+	
+	<select id="selectDemoList" resultMap="demoMap">
+		SELECT * FROM DEV
+	</select>
+	<select id="selectDemoListMap" resultType="map">
+		SELECT * FROM DEV
+	</select>
+	
+</mapper>
